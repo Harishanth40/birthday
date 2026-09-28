@@ -27,18 +27,15 @@ const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)), lerp=(a,b,t)=>a+(b-a)*t;
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
 // ---------- Audio ----------
-let AC; const F={};
-function initAudio(){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} }
-function tone(f,d,at=0,type='sine',g=.12){
-  if(!AC) return; const o=AC.createOscillator(),v=AC.createGain(),n=AC.currentTime+at;
-  o.type=type; o.frequency.setValueAtTime(f,n); v.gain.setValueAtTime(0,n); v.gain.linearRampToValueAtTime(g,n+.03); v.gain.exponentialRampToValueAtTime(.001,n+d);
-  o.connect(v); v.connect(AC.destination); o.start(n); o.stop(n+d+.05);
-}
-function chime(a){ a.forEach((f,i)=>tone(f,1.2,i*.14,'sine',.07)); }
-function melody(){
-  const N=[[392,.75],[392,.25],[440,1],[392,1],[523,1],[494,2],[392,.75],[392,.25],[440,1],[392,1],[587,1],[523,2],
-    [392,.75],[392,.25],[784,1],[659,1],[523,1],[494,1],[440,1],[698,.75],[698,.25],[659,1],[523,1],[587,1],[523,2]];
-  let at=.3; for(const [f,b] of N){ tone(f,b*.55,at,'triangle',.08); at+=b*.5; }
+const audioTrack = new Audio('happy_birthday.mp3');
+audioTrack.loop = true;
+audioTrack.onerror = function() {
+  audioTrack.src = 'https://p.scdn.co/mp3-preview/c47c8fc865a2aee0a23cd20bd109750c196e5c53';
+  audioTrack.play().catch(e => console.log('Audio playback fallback error:', e));
+};
+
+function playMusic() {
+  audioTrack.play().catch(e => console.log('Audio play error:', e));
 }
 
 // ---------- Helpers ----------
@@ -147,10 +144,9 @@ function intro(t,u,o){
   if(o>.6){ ctx.fillStyle=`rgba(7,11,38,${(o-.6)*2.5})`; ctx.fillRect(0,0,W,H); }
 }
 
-// ---------- Main scene (plays once, then stays) ----------
+// ---------- Main scene ----------
 function scene(t,u){
   const hor=H*.7, fade=clamp(t/1.2);
-  if(!F.pad){ F.pad=1; tone(110,14,0,'sine',.04); tone(165,14,0,'sine',.03); tone(220,14,0,'sine',.025); }
   const g=ctx.createLinearGradient(0,0,0,hor); g.addColorStop(0,'#070b26'); g.addColorStop(.6,'#1d1548'); g.addColorStop(1,'#6b2f6e');
   ctx.fillStyle=g; ctx.fillRect(0,0,W,hor);
   ctx.fillStyle='#fff';
@@ -171,18 +167,15 @@ function scene(t,u){
   // lotus + ripples
   const lp=ease(clamp((t-8)/4.5)), la=clamp((t-7.5)/1), lr=Math.min(u*.2,H*.11), lcy=hor+u*.005;
   if(la>0){
-    if(!F.lo){ F.lo=1; chime([523,659,784,1047]); }
     ctx.save(); ctx.translate(0,2*lcy); ctx.scale(1,-1); lotus(W/2,lcy,lr,lp,la*.22); ctx.restore();
     if(lp>.9) for(let i=0;i<3;i++){ const ph=(t*.35+i/3)%1, rr=u*.1+ph*u*.35; ctx.strokeStyle=`rgba(255,200,230,${(1-ph)*.35})`; ctx.lineWidth=u*.002;
       ctx.beginPath(); ctx.ellipse(W/2,lcy+u*.01,rr,rr*.18,0,0,7); ctx.stroke(); }
     lotus(W/2,lcy,lr,lp,la);
   }
   // fireflies -> name
-  if(t>4.6&&!F.nm){ F.nm=1; chime([784,988,1175,1568]); }
   drawFF(t,u);
   glow(NAME,W/2,H*.34,`${NFS}px "Great Vibes",cursive`,'#fff2c8','#ffcc66',u*.04,ease(clamp((t-6.5)/1.5)));
   glow('Happy Birthday',W/2,H*.45,`italic 600 ${u*.075}px "Playfair Display",serif`,'#ffe1ef','#ff7ab5',u*.03,ease(clamp((t-8)/1.5)));
-  if(t>8.2&&!F.ml){ F.ml=1; melody(); }
   const ma2=ease(clamp((t-11)/1.5));
   if(ma2>0){ const ly=wrap(MSG,W/2,H*.53,W*.84,u*.055,`italic ${u*.04}px "Playfair Display",serif`,'#e9d3ea',ma2);
     if(FROM) text('\u2014 '+FROM,W/2,ly+u*.065,`${u*.06}px "Great Vibes",cursive`,'#ffe8b0',ma2); }
@@ -195,7 +188,7 @@ function scene(t,u){
 let phase='intro', start=0, last=0, openT=0, built=false;
 cv.addEventListener('pointerdown',()=>{
   if(phase!=='intro') return;
-  initAudio(); chime([659,880,1175]); phase='open'; openT=performance.now();
+  playMusic(); phase='open'; openT=performance.now();
   Promise.all([document.fonts.load('64px "Great Vibes"',NAME),document.fonts.load('italic 40px "Playfair Display"')]).catch(()=>{}).then(()=>{ build(); built=true; });
 });
 function frame(now){
